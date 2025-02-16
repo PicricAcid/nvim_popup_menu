@@ -16,9 +16,17 @@ local popup_menu = require("utils.popup_menu")
 以下のように呼び出します。  
 ```
 local table = { "Item1", "Item2", "Item3" }
-local index = 1
+local opt = {
+  start_index = 1,
+  relative = "cursor",
+  row = 0,
+  col = 0,
+  width = 40,
+  border = "rounded",
+  title = "popup_menu",
+}
 
-popup_menu.popup_menu(table, index, function(result)
+popup_menu.popup_menu(table, opt, function(result)
   print(result)
 end)
 ```
