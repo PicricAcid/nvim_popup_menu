@@ -44,6 +44,7 @@ popup_menu({table}, {opt}, {callback})の{opt}に追加します。
 | width       | floating windowのwidthと同じ    |
 | border      | floating windowのborderと同じ   |
 | title       | floating windowのtitleと同じ    |
+| zindex      | popup_menuのzindex             |
 
 heightは指定できません。渡されたtable数で固定です。
 
