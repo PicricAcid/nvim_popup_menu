@@ -30,6 +30,7 @@ local function open_popup_window(buffer, height, opt)
 	title = opt.title,
 	title_pos = 'left',
 	noautocmd = true,
+	zindex = opt.zindex
     })
     api.nvim_win_set_option(win, 'number',  false)
     api.nvim_win_set_option(win, 'relativenumber', false)
@@ -53,6 +54,7 @@ local function open_popup_window_selected(buffer, row, opt)
 	height = 1,
 	focusable = true,
 	noautocmd = true,
+	zindex = opt.zindex + 1,
     })
     api.nvim_win_set_option(win, 'number',  false)
     api.nvim_win_set_option(win, 'relativenumber', false)
