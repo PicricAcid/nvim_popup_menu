@@ -109,7 +109,8 @@ function M.popup_menu(table, opt, callback)
 	    col = 0,
 	    width = 40,
 	    border = 'rounded',
-	    title = 'popup_menu'
+	    title = 'popup_menu',
+	    zindex = 1,
 	}
     end
 
