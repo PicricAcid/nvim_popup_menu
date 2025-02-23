@@ -24,6 +24,7 @@ local opt = {
   width = 40,
   border = "rounded",
   title = "popup_menu",
+  zindex = 1,
 }
 
 popup_menu.popup_menu(table, opt, function(result)
