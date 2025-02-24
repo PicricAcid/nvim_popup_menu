@@ -30,7 +30,7 @@ local function open_popup_window(buffer, height, opt)
 	title = opt.title,
 	title_pos = 'left',
 	noautocmd = true,
-	zindex = opt.zindex
+	zindex = opt.zindex,
     })
     api.nvim_win_set_option(win, 'number',  false)
     api.nvim_win_set_option(win, 'relativenumber', false)
@@ -45,7 +45,7 @@ end
 ---@param row number
 ---`param opt table<T>
 ---@return number
-local function open_popup_window_selected(buffer, row, opt)
+local function open_popup_window_selected(buffer, row, opt, parent_win)
     local win = api.nvim_open_win(buffer, true, {
 	relative = 'win',
 	row = row,
@@ -55,6 +55,7 @@ local function open_popup_window_selected(buffer, row, opt)
 	focusable = true,
 	noautocmd = true,
 	zindex = opt.zindex + 1,
+	win = parent_win,
     })
     api.nvim_win_set_option(win, 'number',  false)
     api.nvim_win_set_option(win, 'relativenumber', false)
@@ -75,7 +76,7 @@ local function popup_menu_create(buffer, buffer_selected, table, opt)
     api.nvim_buf_set_lines(buffer_selected, 0, -1, true, { table[opt.start_index] })
 
     local window = open_popup_window(buffer, #table, opt)
-    local window_selected = open_popup_window_selected(buffer_selected, opt.start_index - 1, opt)
+    local window_selected = open_popup_window_selected(buffer_selected, opt.start_index - 1, opt, window)
 
     return window, window_selected
 end
@@ -85,10 +86,10 @@ end
 ---@param index number
 ---@param opt table<T>
 ---@return number
-local function popup_menu_update(buffer_selected, table, index, opt)
+local function popup_menu_update(buffer_selected, table, index, opt, parent_win)
     
     api.nvim_buf_set_lines(buffer_selected, 0, -1, true, { table[index] })
-    local new_window_selected = open_popup_window_selected(buffer_selected, index-1, opt)
+    local new_window_selected = open_popup_window_selected(buffer_selected, index-1, opt, parent_win)
     
     return new_window_selected
 end
@@ -129,7 +130,7 @@ function M.popup_menu(table, opt, callback)
 		index = 1
 	    end
 	    api.nvim_win_close(window_selected, false)
-	    window_selected = popup_menu_update(buffer_selected, table, index, opt)
+	    window_selected = popup_menu_update(buffer_selected, table, index, opt, window)
 	end, { buffer = buf })
 
         vim.keymap.set('n', '<Up>', function()
@@ -138,7 +139,7 @@ function M.popup_menu(table, opt, callback)
 		index = #table
 	    end
 	    api.nvim_win_close(window_selected, false)
-	    window_selected = popup_menu_update(buffer_selected, table, index, opt)
+	    window_selected = popup_menu_update(buffer_selected, table, index, opt, window)
 	end, { buffer = buf })
 
 	vim.keymap.set('n', '<CR>', function()
