@@ -6,20 +6,36 @@ vim.cmd("highlight PopupMenuFloatTitle guifg=#6ab7ff")
 vim.cmd("highlight PopupMenuText guifg=#abb2bf")
 vim.cmd("highlight PopupMenuTextSelected guifg=#abb2bf guibg=#383c44")
 
----@return number
-local function get_buffer()
-    local buf = api.nvim_create_buf(false, true)
-    return buf
-end
-
----@param buffer number
----@param height number
+---@param popup_table table<string>
 ---@param opt table<T>
----@return win
-local function open_popup_window(buffer, height, opt)
+---@param callback function()
+---@return callback(string)
+function M.popup_menu(popup_table, opt, callback)
+    local buffer = api.nvim_create_buf(false, true)
+    local buffer_selected = api.nvim_create_buf(false, true)
+
+    if opt == nil then
+    	opt = {
+	    start_index = 1,
+	    relative = 'cursor',
+	    row = 0,
+	    col = 0,
+	    width = 40,
+	    height = 5,
+	    border = 'rounded',
+	    title = 'popup_menu',
+	    zindex = 1,
+	}
+    end
+
     opt.title = { { opt.title, 'PopupMenuFloatTitle' } }
 
-    local win = api.nvim_open_win(buffer, true, {
+    local start_index = opt.start_index
+    local cursor_pos = opt.start_index
+    local height = math.min(opt.height, #popup_table)
+
+    -- popup_windowを作成
+    local window = api.nvim_open_win(buffer, true, {
 	relative = opt.relative,
 	row = opt.row,
 	col = opt.col,
@@ -32,122 +48,103 @@ local function open_popup_window(buffer, height, opt)
 	noautocmd = true,
 	zindex = opt.zindex,
     })
-    api.nvim_win_set_option(win, 'number',  false)
-    api.nvim_win_set_option(win, 'relativenumber', false)
-    api.nvim_win_set_option(win, 'wrap',  false)
-    api.nvim_win_set_option(win, 'cursorline',  false)
-    api.nvim_win_set_option(win, 'winhighlight',  'FloatBorder:PopupMenuFloatBorder,NormalFloat:PopupMenuText')
-
-    return win
-end
-
----@param buffer number
----@param row number
----`param opt table<T>
----@return number
-local function open_popup_window_selected(buffer, row, opt, parent_win)
-    local win = api.nvim_open_win(buffer, true, {
-	relative = 'win',
-	row = row,
-	col = 0,
-	width = opt.width,
-	height = 1,
-	focusable = true,
-	noautocmd = true,
-	zindex = opt.zindex + 1,
-	win = parent_win,
-    })
-    api.nvim_win_set_option(win, 'number',  false)
-    api.nvim_win_set_option(win, 'relativenumber', false)
-    api.nvim_win_set_option(win, 'wrap',  false)
-    api.nvim_win_set_option(win, 'cursorline',  false)
-    api.nvim_win_set_option(win, 'winhighlight', 'NormalFloat:PopupMenuTextSelected')
-
-    return win
-end
-
----@param buffer number
----@param buffer_selected number
----@param table table<string>
----@param opt table<T>
----@return number, number
-local function popup_menu_create(buffer, buffer_selected, table, opt)
-    api.nvim_buf_set_lines(buffer, 0, -1, true, table)
-    api.nvim_buf_set_lines(buffer_selected, 0, -1, true, { table[opt.start_index] })
-
-    local window = open_popup_window(buffer, #table, opt)
-    local window_selected = open_popup_window_selected(buffer_selected, opt.start_index - 1, opt, window)
-
-    return window, window_selected
-end
-
----@param buffer_selected number
----@param table table<string>
----@param index number
----@param opt table<T>
----@return number
-local function popup_menu_update(buffer_selected, table, index, opt, parent_win)
+    api.nvim_win_set_option(window, 'number',  false)
+    api.nvim_win_set_option(window, 'relativenumber', false)
+    api.nvim_win_set_option(window, 'wrap',  false)
+    api.nvim_win_set_option(window, 'cursorline',  false)
+    api.nvim_win_set_option(window, 'winhighlight',  'FloatBorder:PopupMenuFloatBorder,NormalFloat:PopupMenuText')
     
-    api.nvim_buf_set_lines(buffer_selected, 0, -1, true, { table[index] })
-    local new_window_selected = open_popup_window_selected(buffer_selected, index-1, opt, parent_win)
-    
-    return new_window_selected
-end
+    -- 選択カーソルウィンドウを作成
+    local window_selected = 0
 
----@param table table<string>
----@param opt table<T>
----@param callback function()
----@return string
-function M.popup_menu(table, opt, callback)
-    local buffer = get_buffer()
-    local buffer_selected = get_buffer()
+    -- 選択カーソルウィンドウ表示(cursor_posの位置に作成)
+    ---@param cursor_pos number 
+    local function window_selected_update(cursor_pos)
+	if window_selected ~= 0 then    
+	    api.nvim_win_close(window_selected, false)
+	end
 
-    if opt == nil then
-    	opt = {
-	    start_index = 1,
-	    relative = 'cursor',
-	    row = 0,
+	window_selected = api.nvim_open_win(buffer_selected, true, {
+	    relative = 'win',
+	    row = cursor_pos - 1,
 	    col = 0,
-	    width = 40,
-	    border = 'rounded',
-	    title = 'popup_menu',
-	    zindex = 1,
-	}
+	    width = opt.width,
+	    height = 1,
+	    focusable = true,
+	    noautocmd = true,
+	    zindex = opt.zindex + 1,
+	    win = window,
+	})
+	api.nvim_win_set_option(window_selected, 'number',  false)
+	api.nvim_win_set_option(window_selected, 'relativenumber', false)
+	api.nvim_win_set_option(window_selected, 'wrap',  false)
+	api.nvim_win_set_option(window_selected, 'cursorline',  false)
+	api.nvim_win_set_option(window_selected, 'winhighlight', 'NormalFloat:PopupMenuTextSelected')
     end
 
-    local index = opt.start_index
+    -- popup_menu描画関数
+    local function popup_menu_render()
+	-- スクロール表示部分をdisplay_tableに格納
+	local end_index = math.min(start_index + height - 1, #popup_table)
+	local display_table = {}
 
-    local window, window_selected = popup_menu_create(buffer, buffer_selected, table, opt)
+	for i = start_index, end_index do
+	    table.insert(display_table, popup_table[i])
+	end
+
+	-- popup_windowを更新
+	api.nvim_buf_set_lines(buffer, 0, -1, true, display_table)
+	api.nvim_buf_set_lines(buffer_selected, 0, -1, true, { display_table[cursor_pos] })
+	window_selected_update(cursor_pos)
+    end
+
+    -- cursor制御関数(スクロール処理も行う)
+    ---@param direction number
+    local function popup_menu_move_cursor(direction)
+	if direction == "down" then
+	    if cursor_pos < height and (start_index + cursor_pos - 1) < #popup_table then
+		cursor_pos = cursor_pos + 1
+	    elseif (start_index + height - 1) < #popup_table then
+		start_index = start_index + 1
+	    end
+	elseif direction == "up" then
+	    if cursor_pos > 1 then
+		cursor_pos = cursor_pos - 1
+	    elseif start_index > 1 then
+		start_index = start_index - 1
+	    end
+	end
+	popup_menu_render()
+    end
+
+    --選択した要素をcallbackで返す
+    local function popup_menu_select()
+	local select_index = start_index + cursor_pos - 1
+	if popup_table[select_index] then
+	    api.nvim_win_close(window, false)
+	    api.nvim_win_close(window_selected, false)
+	    if callback then
+		callback(popup_table[select_index])
+	    end
+	end
+    end
+
+    -- キーマッピング
     vim.tbl_map(function(buf)
 	vim.keymap.set('n', '<ESC>', function()
 	    api.nvim_win_close(window, false)
 	    api.nvim_win_close(window_selected, false)
 	end, { buffer = buf })
 
-	vim.keymap.set('n', '<Down>', function()
-	    index = index + 1
-	    if index > #table then
-		index = 1
-	    end
-	    api.nvim_win_close(window_selected, false)
-	    window_selected = popup_menu_update(buffer_selected, table, index, opt, window)
-	end, { buffer = buf })
+	vim.keymap.set('n', '<Down>', function() popup_menu_move_cursor("down") end, { buffer = buf })
 
-        vim.keymap.set('n', '<Up>', function()
-	    index = index - 1
-	    if index < 1 then
-		index = #table
-	    end
-	    api.nvim_win_close(window_selected, false)
-	    window_selected = popup_menu_update(buffer_selected, table, index, opt, window)
-	end, { buffer = buf })
+        vim.keymap.set('n', '<Up>', function() popup_menu_move_cursor("up") end, { buffer = buf })
 
-	vim.keymap.set('n', '<CR>', function()
-	    api.nvim_win_close(window, false)
-	    api.nvim_win_close(window_selected, false)
-	    if callback then callback(table[index]) end
-	end, { buffer = buf })
+	vim.keymap.set('n', '<CR>', function() popup_menu_select() end, { buffer = buf })
     end, { buffer, buffer_selected })
+
+    -- 初期表示
+    popup_menu_render()
 end
 
 return M
