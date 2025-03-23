@@ -43,11 +43,12 @@ popup_menu({table}, {opt}, {callback})の{opt}に追加します。
 | row         | floating windowのrowと同じ      |
 | col         | floating windowのcolと同じ      |
 | width       | floating windowのwidthと同じ    |
+| height      | floating windoeのheightと同じ   |
 | border      | floating windowのborderと同じ   |
 | title       | floating windowのtitleと同じ    |
 | zindex      | popup_menuのzindex             |
 
-heightは指定できません。渡されたtable数で固定です。
+heightを指定したとき、要素数がheightを上回る場合はスクロールして表示するようになります。
 
 # 補足
 ハイライトを独自に作っています(todo: Vimのハイライトと合わせる)  
