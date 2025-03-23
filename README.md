@@ -22,6 +22,7 @@ local opt = {
   row = 0,
   col = 0,
   width = 40,
+  height = 2,
   border = "rounded",
   title = "popup_menu",
   zindex = 1,
