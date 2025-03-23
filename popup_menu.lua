@@ -12,7 +12,6 @@ vim.cmd("highlight PopupMenuTextSelected guifg=#abb2bf guibg=#383c44")
 ---@return callback(string)
 function M.popup_menu(popup_table, opt, callback)
     local buffer = api.nvim_create_buf(false, true)
-    local buffer_selected = api.nvim_create_buf(false, true)
 
     if opt == nil then
     	opt = {
@@ -54,32 +53,24 @@ function M.popup_menu(popup_table, opt, callback)
     api.nvim_win_set_option(window, 'cursorline',  false)
     api.nvim_win_set_option(window, 'winhighlight',  'FloatBorder:PopupMenuFloatBorder,NormalFloat:PopupMenuText')
     
-    -- 選択カーソルウィンドウを作成
-    local window_selected = 0
+    -- ハイライト用のnamespace, extmarkを作成
+    local ns_id = api.nvim_create_namespace("popup_menu_ns")
+    local current_extmark = nil
 
-    -- 選択カーソルウィンドウ表示(cursor_posの位置に作成)
+    -- 選択カーソル表示(cursor_posの位置にハイライト)
     ---@param cursor_pos number 
-    local function window_selected_update(cursor_pos)
-	if window_selected ~= 0 then    
-	    api.nvim_win_close(window_selected, false)
+    ---@param buffer number
+    local function window_update(cursor_pos, buffer)
+	if current_extmark then
+	    api.nvim_buf_del_extmark(buffer, ns_id, current_extmark)
 	end
 
-	window_selected = api.nvim_open_win(buffer_selected, true, {
-	    relative = 'win',
-	    row = cursor_pos - 1,
-	    col = 0,
-	    width = opt.width,
-	    height = 1,
-	    focusable = true,
-	    noautocmd = true,
-	    zindex = opt.zindex + 1,
-	    win = window,
+	current_extmark = api.nvim_buf_set_extmark(buffer, ns_id, cursor_pos - 1, 0, {
+	    end_row = cursor_pos,
+	    hl_group = "PopupMenuTextSelected",
+	    priority = 100,
+	    hl_eol = true,
 	})
-	api.nvim_win_set_option(window_selected, 'number',  false)
-	api.nvim_win_set_option(window_selected, 'relativenumber', false)
-	api.nvim_win_set_option(window_selected, 'wrap',  false)
-	api.nvim_win_set_option(window_selected, 'cursorline',  false)
-	api.nvim_win_set_option(window_selected, 'winhighlight', 'NormalFloat:PopupMenuTextSelected')
     end
 
     -- popup_menu描画関数
@@ -94,8 +85,7 @@ function M.popup_menu(popup_table, opt, callback)
 
 	-- popup_windowを更新
 	api.nvim_buf_set_lines(buffer, 0, -1, true, display_table)
-	api.nvim_buf_set_lines(buffer_selected, 0, -1, true, { display_table[cursor_pos] })
-	window_selected_update(cursor_pos)
+	window_update(cursor_pos, buffer)
     end
 
     -- cursor制御関数(スクロール処理も行う)
@@ -122,7 +112,6 @@ function M.popup_menu(popup_table, opt, callback)
 	local select_index = start_index + cursor_pos - 1
 	if popup_table[select_index] then
 	    api.nvim_win_close(window, false)
-	    api.nvim_win_close(window_selected, false)
 	    if callback then
 		callback(popup_table[select_index])
 	    end
@@ -133,7 +122,6 @@ function M.popup_menu(popup_table, opt, callback)
     vim.tbl_map(function(buf)
 	vim.keymap.set('n', '<ESC>', function()
 	    api.nvim_win_close(window, false)
-	    api.nvim_win_close(window_selected, false)
 	end, { buffer = buf })
 
 	vim.keymap.set('n', '<Down>', function() popup_menu_move_cursor("down") end, { buffer = buf })
@@ -141,7 +129,7 @@ function M.popup_menu(popup_table, opt, callback)
         vim.keymap.set('n', '<Up>', function() popup_menu_move_cursor("up") end, { buffer = buf })
 
 	vim.keymap.set('n', '<CR>', function() popup_menu_select() end, { buffer = buf })
-    end, { buffer, buffer_selected })
+    end, { buffer })
 
     -- 初期表示
     popup_menu_render()
